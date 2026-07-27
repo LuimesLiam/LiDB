@@ -15,7 +15,15 @@
 		"ghcr.io/devcontainers/features/node",
 		"ghcr.io/devcontainers/features/rust",
 		"ghcr.io/devcontainer-config/features/dot-config"
-	]
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"openai.chatgpt",
+				"anthropic.claude-code"
+			]
+		}
+	}
 
 	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.
 	// "mounts": [
@@ -34,9 +42,6 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "rustc --version",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
