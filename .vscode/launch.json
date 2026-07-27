@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Build and launch Hello World",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/hello_world",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "cargo build",
+      "sourceLanguages": ["rust"]
+    }
+  ]
+}
