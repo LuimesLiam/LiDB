@@ -5,16 +5,16 @@
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/rust:2-1-trixie",
 	"features": {
+		"ghcr.io/devcontainers/features/github-cli:1": {},
 		"ghcr.io/devcontainers/features/node:1": {},
 		"ghcr.io/devcontainers/features/rust:1": {},
 		"ghcr.io/devcontainer-config/features/dot-config:4": {}
 	},
 	"overrideFeatureInstallOrder": [
+		"ghcr.io/devcontainers/features/github-cli",
 		"ghcr.io/devcontainers/features/node",
 		"ghcr.io/devcontainers/features/rust",
-		"ghcr.io/devcontainer-config/features/dot-config",
-		"openai.chatgpt",
-		"anthropic.claude-code"
+		"ghcr.io/devcontainer-config/features/dot-config"
 	]
 
 	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.
