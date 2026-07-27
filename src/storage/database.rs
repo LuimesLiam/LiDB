@@ -1,9 +1,9 @@
 
-use crate::error::DbError;
-use crate::row::Row;
-use crate::schema::Schema;
-use crate::table::Table;
-use crate::value::Value;
+use super::error::DbError;
+use super::row::Row;
+use super::schema::Schema;
+use super::table::Table;
+use super::value::Value;
 use std::collections::HashMap;
 
 #[derive(Debug,Default)]
@@ -103,8 +103,8 @@ impl Database{
 
 mod tests{
     use super::*;
-    use crate::schema::Column;
-    use crate::value::DataType;
+    use crate::storage::schema::Column;
+    use crate::storage::value::DataType;
 
     fn user_schema() -> Schema {
         Schema::new(vec![
@@ -148,7 +148,6 @@ mod tests{
         ));
     }
 }
-
 
 
 

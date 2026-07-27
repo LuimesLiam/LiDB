@@ -1,7 +1,7 @@
-use crate::error::DbError;
-use crate::row::Row;
-use crate::schema::Schema;
-use crate::value::Value;
+use super::error::DbError;
+use super::row::Row;
+use super::schema::Schema;
+use super::value::Value;
 
 
 #[derive(Debug, Clone)]
@@ -144,8 +144,8 @@ impl Table {
 #[cfg(test)]
 mod tests{
     use super::*;
-    use crate::schema::Column; 
-    use crate::value::DataType;
+    use crate::storage::schema::Column; 
+    use crate::storage::value::DataType;
 
     fn user_table() -> Table { 
         let schema = Schema::new( vec![
@@ -288,4 +288,3 @@ mod tests{
         assert_eq!(table.rows()[0][1], Value::text("Alice"));
     }
 }
-
