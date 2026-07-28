@@ -1,6 +1,19 @@
-use LiDB::{Column, DataType, Database, Schema, Value};
+use LiDB::{Column, DataType, Database, Schema, Value, Lexer, Parser};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+    let sql = "SELECT id, name FROM users WHERE id >= 1 AND name != 'Bob';";
+    println!("SQL lexer output:");
+    let tokens = Lexer::new(sql).tokenize()?;
+    for token in &tokens {
+        // `:?` uses Rust's Debug formatting, which shows enum variant names
+        // and their attached data such as Identifier("name").
+        println!("{token:?}");
+    }
+    let ast = Parser::new(tokens).parse()?;
+    println!("\nSQL parser output:\n{ast:#?}");
+
+
     let mut db = Database::new();
 
     let users_schema = Schema::new(vec![

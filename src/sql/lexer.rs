@@ -120,9 +120,19 @@ impl Lexer {
                 self.advance();
                 Ok(Token::NotEqual)
             }
+            '<' if self.peek_char() == Some('=') => {
+                self.advance();
+                self.advance();
+                Ok(Token::LessThanOrEqual)
+            }
             '<' => {
                 self.advance();
                 Ok(Token::LessThan)
+            }
+            '>' if self.peek_char() == Some('=') => {
+                self.advance();
+                self.advance();
+                Ok(Token::GreaterThanOrEqual)
             }
             '>' => {
                 self.advance();
@@ -131,6 +141,18 @@ impl Lexer {
             '*' => {
                 self.advance();
                 Ok(Token::Asterisk)
+            }
+                        '+' => {
+                self.advance();
+                Ok(Token::Plus)
+            }
+            '-' => {
+                self.advance();
+                Ok(Token::Minus)
+            }
+            '/' => {
+                self.advance();
+                Ok(Token::Slash)
             }
             unexpected => Err(LexError::UnexpectedCharacter {
                 character: unexpected,
@@ -180,6 +202,16 @@ impl Lexer {
             "WHERE" => Token::Where,
             "INTO" => Token::Into,
             "VALUES" => Token::Values,
+            "SET" => Token::Set,
+            "AND" => Token::And,
+            "OR" => Token::Or,
+            "NOT" => Token::Not,
+            "TRUE" => Token::True,
+            "FALSE" => Token::False,
+            "NULL" => Token::Null,
+            "INTEGER" => Token::IntegerType,
+            "BOOLEAN" => Token::BooleanType,
+            "TEXT" => Token::TextType,
             _ => Token::Identifier(word),
         }
     }
@@ -315,7 +347,7 @@ mod tests {
 
     #[test]
     fn lexes_comparison_operators_and_escaped_quote() {
-        let tokens = Lexer::new("a != 'Liam''s' <> b < 2 > 1")
+        let tokens = Lexer::new("a != 'Liam''s' <> b <= 2 >= 1")
             .tokenize()
             .unwrap();
 
@@ -327,12 +359,32 @@ mod tests {
                 Token::StringLiteral("Liam's".to_string()),
                 Token::NotEqual,
                 Token::Identifier("b".to_string()),
-                Token::LessThan,
+                Token::LessThanOrEqual,
                 Token::Integer(2),
-                Token::GreaterThan,
+                Token::GreaterThanOrEqual,
                 Token::Integer(1),
                 Token::EndOfInput,
             ]
         );
+    }
+
+        #[test]
+    fn lexes_parser_keywords_types_and_arithmetic() {
+        let tokens = Lexer::new(
+            "CREATE TABLE t (active BOOLEAN); UPDATE t SET active = NOT false OR 1 + 2 * 3 / 4 - 5;",
+        )
+        .tokenize()
+        .unwrap();
+
+        assert!(tokens.contains(&Token::Create));
+        assert!(tokens.contains(&Token::BooleanType));
+        assert!(tokens.contains(&Token::Set));
+        assert!(tokens.contains(&Token::Not));
+        assert!(tokens.contains(&Token::False));
+        assert!(tokens.contains(&Token::Or));
+        assert!(tokens.contains(&Token::Plus));
+        assert!(tokens.contains(&Token::Asterisk));
+        assert!(tokens.contains(&Token::Slash));
+        assert!(tokens.contains(&Token::Minus));
     }
 }
