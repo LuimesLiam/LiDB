@@ -1,3 +1,7 @@
+/// One meaningful piece of SQL source text.
+///
+/// Keywords have their own variants because the parser needs to
+/// distinguish `SELECT` from a user-chosen name such as `users`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
     Select,
@@ -10,6 +14,16 @@ pub enum Token {
     Where,
     Into,
     Values,
+    Set,
+    And,
+    Or,
+    Not,
+    True,
+    False,
+    Null,
+    IntegerType,
+    BooleanType,
+    TextType,
 
     Identifier(String),
     Integer(i64),
@@ -23,8 +37,13 @@ pub enum Token {
     Equal,
     NotEqual,
     LessThan,
+    LessThanOrEqual,
     GreaterThan,
+    GreaterThanOrEqual,
 
     Asterisk,
+    Plus,
+    Minus,
+    Slash,
     EndOfInput,
 }

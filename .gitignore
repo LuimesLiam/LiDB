@@ -1,1 +1,94 @@
-target/
+# Rust build output
+/target/
+**/*.rs.bk
+*.pdb
+
+# Environment files and local overrides
+.env
+.env.*
+.envrc
+.direnv/
+!.env.example
+!.env.sample
+!.env.template
+*.env
+*.env.*
+!*.env.example
+!*.env.sample
+!*.env.template
+
+# Credentials, tokens, and private keys
+credentials.json
+credentials.*
+secrets.json
+secrets.*
+*.credentials
+*.secret
+*.secrets
+*.token
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+*.ovpn
+*.mobileprovision
+.netrc
+.npmrc
+.pypirc
+id_rsa
+id_rsa.*
+id_dsa
+id_dsa.*
+id_ecdsa
+id_ecdsa.*
+id_ed25519
+id_ed25519.*
+*.tfvars
+*.tfvars.json
+terraform.tfstate
+terraform.tfstate.*
+
+# Cloud and infrastructure credentials
+.aws/
+.azure/
+.config/gcloud/
+.docker/config.json
+.kube/
+.terraform/
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Local databases, dumps, and backups
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+*.bak
+*.backup
+
+# Logs, caches, and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.cache/
+.tmp/
+tmp/
+
+# IDE and OS metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+*.code-workspace
+
+# Secret-scanner reports
+gitleaks-report.*

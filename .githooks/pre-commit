@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+blocked_paths=$(
+	git diff --cached --name-only --diff-filter=ACMR |
+		grep -E '(^|/)(\.env($|\.)|credentials?($|[._-])|secrets?($|[._-])|id_(rsa|dsa|ecdsa|ed25519)($|\.)|\.aws/|\.azure/|\.kube/)|\.(pem|key|p8|p12|pfx|jks|keystore|kdbx|token|tfvars)(\.json)?$' |
+		grep -Ev '(^|/)\.env\.(example|sample|template)$' || true
+)
+
+if [ -n "$blocked_paths" ]; then
+	echo "Commit blocked: secret-bearing filenames are staged:" >&2
+	echo "$blocked_paths" >&2
+	echo "Store secrets outside Git and commit only sanitized example files." >&2
+	exit 1
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+	git diff --cached --binary --no-ext-diff |
+		gitleaks stdin --config .gitleaks.toml --redact --no-banner
+	exit $?
+fi
+
+if git diff --cached --no-ext-diff -U0 |
+	grep '^+' |
+	grep -Ev '^\+\+\+' |
+	grep -Eiq '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|api[_-]?key[[:space:]]*[:=][[:space:]]*["'\"']?[A-Za-z0-9_+/=-]{12,}|client[_-]?secret[[:space:]]*[:=][[:space:]]*["'\"']?[A-Za-z0-9_+/=-]{12,}|access[_-]?token[[:space:]]*[:=][[:space:]]*["'\"']?[A-Za-z0-9_+/=-]{12,}|password[[:space:]]*[:=][[:space:]]*["'\"']?[^[:space:]\"'\"']{8,})'
+then
+	echo "Commit blocked: staged additions look like credentials or private keys." >&2
+	echo "Install Gitleaks for comprehensive local scanning; CI also performs a full scan." >&2
+	exit 1
+fi
+
+exit 0
