@@ -314,6 +314,8 @@ impl<'a> Binder<'a> {
                 for projection in &statement.projections {
                     match projection {
                         SelectItem::Wildcard => {
+                            // Expand this now so execution never handles a wildcard.
+                            // Bound columns are just row indexes, which makes scans simpler.
                             projections.extend(schema.columns().iter().enumerate().map(
                                 |(column_index, column)| BoundExpression::Column { column_index, data_type: column.data_type() })
                             
@@ -420,6 +422,8 @@ impl<'a> Binder<'a> {
             return Ok(None);
         };
         let expression = self.bind_expression(expression, Some(schema), table)?;
+        // Catch non-boolean WHERE expressions before we scan any rows.
+        // The executor can then treat this as a runtime value check only.
         if expression.data_type() != Some(DataType::Boolean) {
             return Err(BindError::ExpectedBoolean {
                 clause: "WHERE expression",
@@ -457,6 +461,7 @@ impl<'a> Binder<'a> {
             } => {
                 let left = self.bind_expression(left, schema, table)?;
                 let right = self.bind_expression(right, schema, table)?;
+                // Store the result type now; execution should not need schema lookups.
                 let data_type = self.binary_result_type(*operator, &left, &right)?;
                 Ok(BoundExpression::Binary {
                     left: Box::new(left),
@@ -500,8 +505,7 @@ impl<'a> Binder<'a> {
         let right_type = right.data_type();
 
         if operator.is_comparison() {
-            // NULL can be compared with a typed value. NULL-to-NULL is also a
-            // valid Boolean comparison even though neither operand supplies a type.
+            // NULL can compare without a concrete type; runtime gives the final value.
             if let (Some(left), Some(right)) = (left_type, right_type)
                 && left != right
             {

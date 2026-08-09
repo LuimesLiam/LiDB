@@ -40,6 +40,11 @@ impl Value {
     pub fn text(value: impl Into<String>) -> Self {
         Value::Text(value.into())
     }
+    /// SQL predicates pass only when their result is exactly `TRUE`.
+    /// `FALSE` and `NULL` both reject a row.
+    pub fn is_true(&self) -> bool {
+        matches!(self, Value::Boolean(true))
+    }
 }
 
 

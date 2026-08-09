@@ -96,6 +96,14 @@ impl Database{
         Ok(self.table_mut(table_name)?.delete_where(predicate))
     }
 
+    pub fn execute(&mut self, sql: &str) -> Result<Vec<Row>, crate::DatabaseError> {
+        crate::executor::execute_sql(self, sql)
+    }
+
+    pub fn execute_batch(&mut self, sql: &str) -> Result<Vec<Vec<Row>>, crate::DatabaseError> {
+        crate::executor::execute_sql_batch(self, sql)
+    }
+
 }
 
 

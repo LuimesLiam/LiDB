@@ -1,5 +1,6 @@
 pub mod storage;
 pub mod sql;
+pub mod executor; 
 
 pub use sql::{
     Assignment, BinaryOperator, BindError, Binder, BinderError, BoundAssignment,
@@ -10,3 +11,8 @@ pub use sql::{
     bind_statement, parse_sql, parse_sql_statements, tokenize,
 };
 pub use storage::{Column, DataType, Database, DbError, Row, Schema, Table, Value};
+pub use executor::{
+    CreateTableExecutor, DatabaseError, DeleteExecutor, Executor, FilterExecutor, InsertExecutor,
+    ProjectionExecutor, TableScanExecutor, UpdateExecutor, build_executor, execute_bound,
+    execute_sql, execute_sql_batch,
+};
