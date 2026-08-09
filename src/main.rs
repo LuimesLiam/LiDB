@@ -1,85 +1,84 @@
-use LiDB::{Column, DataType, Database, Schema, Value, Lexer, Parser};
+use LiDB::{Database, Row};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut database = Database::new();
 
-    let sql = "SELECT id, name FROM users WHERE id >= 1 AND name != 'Bob';";
-    println!("SQL lexer output:");
-    let tokens = Lexer::new(sql).tokenize()?;
-    for token in &tokens {
-        // `:?` uses Rust's Debug formatting, which shows enum variant names
-        // and their attached data such as Identifier("name").
-        println!("{token:?}");
-    }
-    let ast = Parser::new(tokens).parse()?;
-    println!("\nSQL parser output:\n{ast:#?}");
-
-
-    let mut db = Database::new();
-
-    let users_schema = Schema::new(vec![
-        Column::identity("id"),
-        Column::required("name", DataType::Text),
-        Column::required("active", DataType::Boolean),
-    ])?;
-
-    db.create_table("users", users_schema)?;
-
-    db.insert(
-        "users",
-        vec![
-            Value::Null,
-            Value::text("Liam"),
-            Value::Boolean(true),
-        ],
+    // Each statement is parsed, bound, and run through the executor pipeline.
+    database.execute_batch(
+        "
+        CREATE TABLE users (id INTEGER, name TEXT, active BOOLEAN);
+        INSERT INTO users VALUES (1, 'Liam', true);
+        INSERT INTO users VALUES (2, 'Alice', false);
+        INSERT INTO users VALUES (3, 'Bob', true);
+        ",
     )?;
 
-    db.insert(
-        "users",
-        vec![
-            Value::Null,
-            Value::text("Alice"),
-            Value::Boolean(false),
-        ],
+    println!("Active users:");
+    print_table(
+        &["id", "name"],
+        &database.execute("SELECT id, name FROM users WHERE active = true;")?,
+    );
+
+    let updated = database.execute(
+        "UPDATE users SET active = true, id = id + 10 WHERE name = 'Alice';",
     )?;
+    println!("\nUpdated {} row(s):", updated.len());
+    print_table(&["id", "name", "active"], &updated);
 
-    println!("All users:");
-    print_users(db.select_all("users")?);
-
-    println!("\nActive users:");
-    let active_users =
-        db.select_where("users", |row| row[2] == Value::Boolean(true))?;
-    print_users(&active_users);
-
-    let updated = db.update_where(
-        "users",
-        |row| row[0] == Value::Integer(2),
-        "active",
-        Value::Boolean(true),
-    )?;
-    println!("\nUpdated {updated} row(s).");
-
-    let deleted =
-        db.delete_where("users", |row| row[0] == Value::Integer(1))?;
-    println!("Deleted {deleted} row(s).");
+    let deleted = database.execute("DELETE FROM users WHERE name = 'Bob';")?;
+    println!("\nDeleted {} row(s):", deleted.len());
+    print_table(&["id", "name", "active"], &deleted);
 
     println!("\nFinal users:");
-    print_users(db.select_all("users")?);
+    print_table(
+        &["id", "name", "active"],
+        &database.execute("SELECT * FROM users;")?,
+    );
 
     Ok(())
 }
 
-fn print_users<T>(rows: &[T])
-where
-    T: std::borrow::Borrow<LiDB::Row>,
-{
-    println!("+----+-------+--------+");
-    println!("| id | name  | active |");
-    println!("+----+-------+--------+");
+fn print_table(headers: &[&str], rows: &[Row]) {
+    let mut widths: Vec<usize> = headers.iter().map(|header| header.len()).collect();
 
     for row in rows {
-        let row = row.borrow();
-        println!("| {:<2} | {:<5} | {:<6} |", row[0], row[1], row[2]);
+        for (index, value) in row.values().iter().enumerate() {
+            if let Some(width) = widths.get_mut(index) {
+                *width = (*width).max(value.to_string().len());
+            }
+        }
     }
 
-    println!("+----+-------+--------+");
+    print_separator(&widths);
+    print_cells(headers.iter().copied(), &widths);
+    print_separator(&widths);
+
+    for row in rows {
+        print_cells(row.values().iter().map(ToString::to_string), &widths);
+    }
+
+    print_separator(&widths);
+    if rows.is_empty() {
+        println!("(no rows)");
+    }
+}
+
+fn print_separator(widths: &[usize]) {
+    print!("+");
+    for width in widths {
+        print!("{}+", "-".repeat(width + 2));
+    }
+    println!();
+}
+
+fn print_cells<I>(cells: I, widths: &[usize])
+where
+    I: IntoIterator,
+    I::Item: AsRef<str>,
+{
+    print!("|");
+    for (cell, width) in cells.into_iter().zip(widths) {
+        print!(" {:<width$} |", cell.as_ref(), width = width);
+    }
+    println!();
 }

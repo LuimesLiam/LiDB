@@ -1,11 +1,18 @@
 pub mod storage;
 pub mod sql;
+pub mod executor; 
 
 pub use sql::{
-    Assignment, BinaryOperator, ColumnDefinition, CreateTableStatement, DeleteStatement,
+    Assignment, BinaryOperator, BindError, Binder, BinderError, BoundAssignment,
+    BoundDeleteStatement, BoundExpression, BoundInsertStatement, BoundSelectStatement,
+    BoundStatement, BoundUpdateStatement, ColumnDefinition, CreateTableStatement, DeleteStatement,
     Expression, InsertStatement, LexError, Lexer, LexerError, ParseError, Parser, SelectItem,
-    SelectStatement, SqlError, Statement, Token, UnaryOperator, UpdateStatement, parse_sql,
-    parse_sql_statements, tokenize,
+    SelectStatement, SemanticError, SqlError, Statement, Token, UnaryOperator, UpdateStatement,
+    bind_statement, parse_sql, parse_sql_statements, tokenize,
 };
-
 pub use storage::{Column, DataType, Database, DbError, Row, Schema, Table, Value};
+pub use executor::{
+    CreateTableExecutor, DatabaseError, DeleteExecutor, Executor, FilterExecutor, InsertExecutor,
+    ProjectionExecutor, TableScanExecutor, UpdateExecutor, build_executor, execute_bound,
+    execute_sql, execute_sql_batch,
+};

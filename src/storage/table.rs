@@ -41,6 +41,10 @@ impl Table {
         self.rows.len()
     }
 
+    pub(crate) fn rows_mut(&mut self) -> &mut [Row] {
+        &mut self.rows
+    }
+
     /// Inserts one row after validating it against the table schema.
     ///
     /// Returns the row's current in-memory position. This is useful for Step 1,
@@ -57,6 +61,7 @@ impl Table {
             .position(|column| column.is_identity())
         {
             if let Some(Value::Null) = row.get(identity_index) {
+                // Identity values are assigned at insert time, after the caller builds the row.
                 row[identity_index] = Value::Integer(self.next_identity);
             }
         }
@@ -73,6 +78,7 @@ impl Table {
                 let next_after_id = id
                     .checked_add(1)
                     .ok_or(DbError::IdentityOverflow { table: self.name.clone() })?;
+                // Explicit IDs may jump ahead, so follow the highest value we've seen.
                 self.next_identity = self.next_identity.max(next_after_id);
             }
         }
@@ -137,6 +143,10 @@ impl Table {
         let old_len = self.row_count(); 
         self.rows.retain(|row| !predicate(row));
         old_len - self.row_count()
+    }
+
+    pub(crate) fn replace_rows(&mut self, rows: Vec<Row>) {
+        self.rows = rows;
     }
 
 }
