@@ -92,3 +92,6 @@ Thumbs.db
 
 # Secret-scanner reports
 gitleaks-report.*
+
+# data files 
+data/*

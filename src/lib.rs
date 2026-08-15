@@ -10,9 +10,12 @@ pub use sql::{
     SelectStatement, SemanticError, SqlError, Statement, Token, UnaryOperator, UpdateStatement,
     bind_statement, parse_sql, parse_sql_statements, tokenize,
 };
-pub use storage::{Column, DataType, Database, DbError, Row, Schema, Table, Value};
 pub use executor::{
     CreateTableExecutor, DatabaseError, DeleteExecutor, Executor, FilterExecutor, InsertExecutor,
     ProjectionExecutor, TableScanExecutor, UpdateExecutor, build_executor, execute_bound,
     execute_sql, execute_sql_batch,
+};
+pub use storage::{
+    Column, DataType, Database, DbError, PAGE_SIZE, PageId, RecordId, Row, Schema, Slot, Table,
+    Value,
 };

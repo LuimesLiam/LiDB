@@ -199,8 +199,12 @@ impl TableScanExecutor {
         Self {rows, position: 0}
     }
 
+    // TODO(storage): Replace this eager materialization with a page-backed scan
+    // cursor. That cursor should read and decode one data page at a time, so a
+    // SELECT can stream arbitrarily large tables. Once scans stream, predicates
+    // can be evaluated before rows are returned to the caller.
     pub fn from_table(database: &Database, table: &str) -> Result<Self, DatabaseError> {
-        Ok(Self::new(database.table(table)?.rows().to_vec()))
+        Ok(Self::new(database.select_all(table)?))
     }
 }
 
@@ -299,8 +303,7 @@ impl Executor for InsertExecutor<'_> {
             .collect::<Result<Vec<_>, _>>()?;
         let row = Row::new(values);
         self.database
-            .table_mut(&self.statement.table)?
-            .insert(row.clone())?;
+            .insert(&self.statement.table, row.values().to_vec())?;
         Ok(Some(row))
     }
 }
@@ -321,40 +324,43 @@ impl <'a> UpdateExecutor<'a> {
         }
     }
 
-    fn execute_once(&mut self) -> Result<(), DatabaseError> {
-        let table = self.database.table_mut(&self.statement.table)?;
-        let mut replacemments = Vec::new(); 
-        for (index, original) in table.rows().iter().enumerate() {
-            if matches_filter(self.statement.filter.as_ref(), original)? {
-                let mut updated = original.clone(); 
-                for assignments in &self.statement.assignments {
-                    let row_len = updated.len(); 
-                    let target = updated.get_mut(assignments.column_index).ok_or(
-                        DatabaseError::InvalidColumnIndex { index:assignments.column_index, row_len }
-                    )?;
-                    // Every assignment sees the old row, like a SQL update.
-                    *target = assignments.value.evaluate(original)?;
-                }
 
+    fn execute_once(&mut self) -> Result<(), DatabaseError> {
+        // TODO(storage): Update matching RecordIds in their original pages
+        // instead of materializing and rebuilding the whole table. This will
+        // also require page-level space management for rows that grow.
+        let table = self.database.table(&self.statement.table)?;
+        let originals = self.database.select_all(&self.statement.table)?;
+        let mut replacements = Vec::new();
+        let mut result = Vec::new();
+        for (index, original) in originals.iter().enumerate() {
+            if matches_filter(self.statement.filter.as_ref(), original)? {
+                let mut updated = original.clone();
+                for assignment in &self.statement.assignments {
+                    let row_len = updated.len();
+                    let target = updated.get_mut(assignment.column_index).ok_or(
+                        DatabaseError::InvalidColumnIndex {
+                            index: assignment.column_index,
+                            row_len,
+                        },
+                    )?;
+                    *target = assignment.value.evaluate(original)?;
+                }
                 table.schema().validate_row(table.name(), &updated)?;
-                replacemments.push((index, updated));
+                result.push(updated.clone());
+                replacements.push((index, updated));
             }
         }
-
-        let result = replacemments
-            .iter()
-            .map(|(_, row)| row.clone())
-            .collect::<Vec<_>>();
-        // The first pass can still fail validation, so don't modify rows until it is done.
-        // Validate every candidate before touching the table.
-        for (index, row) in replacemments {
-            table.rows_mut()[index] = row; 
+        let mut rows = originals;
+        for (index, row) in replacements {
+            rows[index] = row;
+        }
+        if !result.is_empty() {
+            self.database.replace_rows(&self.statement.table, rows)?;
         }
         self.output = Some(result.into_iter());
-
         Ok(())
     }
-
 }
 
 impl Executor for UpdateExecutor<'_> {
@@ -382,21 +388,21 @@ impl<'a> DeleteExecutor<'a> {
     }
 
     fn execute_once(&mut self) -> Result<(), DatabaseError> {
-        let table = self.database.table_mut(&self.statement.table)?;
+        // TODO(storage): Delete matching slots in place and compact/reuse their
+        // pages, rather than rebuilding the entire table's page chain.
+        let rows = self.database.select_all(&self.statement.table)?;
         let mut kept = Vec::new();
         let mut deleted = Vec::new();
-        for row in table.rows() {
-            if matches_filter(self.statement.filter.as_ref(), row)? {
-                deleted.push(row.clone());
+        for row in rows {
+            if matches_filter(self.statement.filter.as_ref(), &row)? {
+                deleted.push(row);
             } else {
-                kept.push(row.clone());
+                kept.push(row);
             }
         }
-        // TODO: Move rows into the kept/deleted sets after evaluating all filters, rather than
-        // cloning them. Preserve the current behavior where filter errors leave the table intact.
-        // `retain` would be shorter, but splitting the rows keeps DELETE output available.
-        // Rebuild so we can return the removed rows too.
-        table.replace_rows(kept);
+        if !deleted.is_empty() {
+            self.database.replace_rows(&self.statement.table, kept)?;
+        }
         self.output = Some(deleted.into_iter());
         Ok(())
     }
