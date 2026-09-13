@@ -35,7 +35,15 @@ pub enum DbError {
     IdentityOverflow {
         table: String,
     },
-
+    Io(String),
+    Corrupt(String),
+    Encoding(String),
+    PageFull,
+    RecordTooLarge {
+        size: usize,
+        maximum: usize,
+    },
+    CatalogFull,
 }
 
 impl fmt::Display for DbError {
@@ -83,8 +91,24 @@ impl fmt::Display for DbError {
             DbError::IdentityOverflow { table } => {
                 write!(f, "identity column in table '{table}' has no remaining values")
             }
+            DbError::Io(message) => write!(f, "I/O error: {message}"),
+            DbError::Corrupt(message) => write!(f, "corrupt database: {message}"),
+            DbError::Encoding(message) => write!(f, "cannot encode value: {message}"),
+            DbError::PageFull => write!(f, "page has no room for this record"),
+            DbError::RecordTooLarge { size, maximum } => write!(
+                f,
+                "record is {size} bytes, but a page can hold at most {maximum}"
+            ),
+            DbError::CatalogFull => write!(f, "the single-page system catalog is full"),
+        
         }
     }
 }
 
 impl Error for DbError {}
+
+impl From<std::io::Error> for DbError {
+    fn from(error: std::io::Error) -> Self {
+        Self::Io(error.to_string())
+    }
+}

@@ -1,7 +1,21 @@
 use LiDB::{Database, Row};
 
+const DATABASE_PATH: &str = "data/persistent-example.lidb";
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut database = Database::new();
+    // Run this once to create and populate the database. Database::create
+    // refuses to overwrite an existing file.
+    //create_persistent_database()?;
+
+    //add_new_table()?;
+    // On later runs, comment out the call above and uncomment this one.
+    open_persistent_database()?;
+
+    Ok(())
+}
+
+fn create_persistent_database() -> Result<(), Box<dyn std::error::Error>> {
+    let mut database = Database::create(DATABASE_PATH)?;
 
     // Each statement is parsed, bound, and run through the executor pipeline.
     database.execute_batch(
@@ -13,28 +27,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ",
     )?;
 
-    println!("Active users:");
-    print_table(
-        &["id", "name"],
-        &database.execute("SELECT id, name FROM users WHERE active = true;")?,
-    );
-
-    let updated = database.execute(
-        "UPDATE users SET active = true, id = id + 10 WHERE name = 'Alice';",
-    )?;
-    println!("\nUpdated {} row(s):", updated.len());
-    print_table(&["id", "name", "active"], &updated);
-
-    let deleted = database.execute("DELETE FROM users WHERE name = 'Bob';")?;
-    println!("\nDeleted {} row(s):", deleted.len());
-    print_table(&["id", "name", "active"], &deleted);
-
-    println!("\nFinal users:");
+    println!("Users saved to {DATABASE_PATH}:");
     print_table(
         &["id", "name", "active"],
         &database.execute("SELECT * FROM users;")?,
     );
 
+    // close() explicitly flushes the file and lets us handle any I/O error.
+    database.close()?;
+    Ok(())
+}
+
+fn add_new_table() -> Result<(), Box<dyn std::error::Error>> {
+    let mut database = Database::open(DATABASE_PATH)?;
+
+    println!("Users loaded from {DATABASE_PATH}:");
+    let sql: &'static str = "
+        CREATE TABLE products (id INTEGER, name TEXT, price INTEGER); 
+        INSERT INTO products VALUES (1, 'Milk', 3);
+    ";
+    database.execute_batch(sql)?;
+
+    print_table(
+        &["id", "name", "price"], 
+        &database.execute("SELECT * FROM products;")? 
+    );
+    database.close(); 
+    Ok(())
+}
+
+fn open_persistent_database() -> Result<(), Box<dyn std::error::Error>> {
+    let mut database = Database::open(DATABASE_PATH)?;
+
+    println!("Users loaded from {DATABASE_PATH}:");
+    print_table(
+        &["id", "name", "active"],
+        &database.execute("SELECT * FROM users;")?,
+    );
+
+    print_table(
+        &["id", "name", "price"], 
+        &database.execute("SELECT * FROM products;")? 
+    );
+
+    database.close()?;
     Ok(())
 }
 
