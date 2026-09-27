@@ -10,6 +10,10 @@ pub trait DiskManager {
     fn write_page(&mut self, page_id: PageId, data: &[u8; PAGE_SIZE]) -> Result<(), DbError>;
 
     fn allocate_page(&mut self) -> Result<PageId, DbError>;
+
+    fn sync(&mut self) -> Result<(), DbError> {
+        Ok(())
+    }
 }
 
 pub struct FileDiskManager {
@@ -103,6 +107,10 @@ impl DiskManager for FileDiskManager {
         self.page_count += 1;
 
         Ok(page_id)
+    }
+    
+    fn sync(&mut self) -> Result<(), DbError> {
+        self.sync_all()
     }
 }
 

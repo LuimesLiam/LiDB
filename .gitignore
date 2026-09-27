@@ -95,3 +95,4 @@ gitleaks-report.*
 
 # data files 
 data/*
+docs/

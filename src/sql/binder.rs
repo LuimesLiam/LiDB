@@ -6,8 +6,7 @@ use crate::{DataType, Database, Schema, Value};
 use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::error::Error;
-use std::fmt::{self, Binary};
-use std::ops::Bound;
+use std::fmt;
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
