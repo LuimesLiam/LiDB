@@ -8,6 +8,7 @@ mod page;
 mod pager;
 mod codec;
 mod disk_manager;
+mod buffer_pool;
 
 // Re-export the useful types so callers do not need to know which small file
 // defines each one. `pub use` makes these names part of the module's public API.
@@ -19,3 +20,5 @@ pub use schema::{Column, Schema};
 pub use table::Table;
 pub use value::{DataType, Value};
 pub use page::{PAGE_SIZE, PageId, RecordId, Slot};
+pub use buffer_pool::{BufferPool, Frame};
+
