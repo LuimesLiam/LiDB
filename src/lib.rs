@@ -16,6 +16,6 @@ pub use executor::{
     execute_sql, execute_sql_batch,
 };
 pub use storage::{
-    Column, DataType, Database, DbError, PAGE_SIZE, PageId, RecordId, Row, Schema, Slot, Table,
-    Value,
+    Column, DataType, Database, DbError, DiskManager, FileDiskManager, PAGE_SIZE, PageId, RecordId,
+    Row, Schema, Slot, Table, Value,
 };
