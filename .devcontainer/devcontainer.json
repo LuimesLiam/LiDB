@@ -8,7 +8,7 @@
 		"ghcr.io/devcontainers/features/github-cli:1": {},
 		"ghcr.io/devcontainers/features/node:2": {},
 		"ghcr.io/devcontainers/features/rust:1": {},
-		"ghcr.io/devcontainer-config/features/dot-config:4": {}
+		"ghcr.io/devcontainer-config/features/dot-config:5": {}
 	},
 	"overrideFeatureInstallOrder": [
 		"ghcr.io/devcontainers/features/github-cli",
