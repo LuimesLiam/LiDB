@@ -14,6 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn create_persistent_database() -> Result<(), Box<dyn std::error::Error>> {
     let mut database = Database::create(DATABASE_PATH)?;
 
@@ -38,6 +39,7 @@ fn create_persistent_database() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn add_new_table() -> Result<(), Box<dyn std::error::Error>> {
     let mut database = Database::open(DATABASE_PATH)?;
 
@@ -52,7 +54,7 @@ fn add_new_table() -> Result<(), Box<dyn std::error::Error>> {
         &["id", "name", "price"], 
         &database.execute("SELECT * FROM products;")? 
     );
-    database.close(); 
+    database.close()?; 
     Ok(())
 }
 

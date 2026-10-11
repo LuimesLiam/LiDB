@@ -6,10 +6,8 @@ use super::row::Row;
 use super::schema::Schema;
 use super::table::Table;
 use super::value::Value;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt::format;
-use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 

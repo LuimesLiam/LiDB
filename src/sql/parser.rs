@@ -4,9 +4,6 @@ use super::ast::{
     UpdateStatement,
 };
 use super::{LexError, Lexer, Token};
-use crate::sql::SelectItem::Wildcard;
-use crate::sql::Token::{Create, Select, Update};
-use crate::sql::token;
 use crate::{DataType, Value};
 use std::error::Error;
 use std::fmt;
@@ -85,7 +82,6 @@ impl From<ParseError> for SqlError {
     }
 }
 
-
 /// Lexes and parses exactly one SQL statement.
 pub fn parse_sql(input: &str) -> Result<Statement, SqlError> {
     let tokens = Lexer::new(input).tokenize()?;
@@ -102,22 +98,19 @@ pub fn parse_sql_statements(input: &str) -> Result<Vec<Statement>, SqlError> {
 
 pub struct Parser {
     tokens: Vec<Token>,
-    position: usize, 
+    position: usize,
 }
 
-
-impl Parser{
+impl Parser {
     pub fn new(mut tokens: Vec<Token>) -> Self {
         if tokens.last() != Some(&Token::EndOfInput) {
             tokens.push(Token::EndOfInput);
         }
 
         Self {
-            tokens, 
-            position: 0
+            tokens,
+            position: 0,
         }
-
-
     }
 
     pub fn parse(mut self) -> Result<Statement, ParseError> {
@@ -127,77 +120,78 @@ impl Parser{
         Ok(statement)
     }
 
-
     pub fn parse_all(mut self) -> Result<Vec<Statement>, ParseError> {
         let mut statement = Vec::new();
 
-        while !self.check(&Token::EndOfInput){
+        while !self.check(&Token::EndOfInput) {
             statement.push(self.parse_statement()?);
-            if !self.consume(&Token::Semicolon) && ! self.check(&Token::EndOfInput){
-                return Err(self.error("; between SQL statements"))
+            if !self.consume(&Token::Semicolon) && !self.check(&Token::EndOfInput) {
+                return Err(self.error("; between SQL statements"));
             }
-            
         }
 
         Ok(statement)
     }
 
-    pub fn parse_statement(&mut self)-> Result<Statement, ParseError> {
+    pub fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.current() {
             Token::Create => self.parse_create_table(),
             Token::Insert => self.parse_insert(),
             Token::Select => self.parse_select(),
-            Token::Update => self.parse_updatE(),
+            Token::Update => self.parse_update(),
             Token::Delete => self.parse_delete(),
-            _ => Err(self.error("CREATE, INSERT, SELECT, UPdate, or DELETE"))
+            _ => Err(self.error("CREATE, INSERT, SELECT, UPDATE, or DELETE")),
         }
     }
 
     fn parse_create_table(&mut self) -> Result<Statement, ParseError> {
         self.expect(&Token::Create, "CREATE")?;
         self.expect(&Token::Table, "TABLE")?;
-        let table = self.expect_indentifier("table name")?;
+        let table = self.expect_identifier("table name")?;
         self.expect(&Token::LeftParen, "'('")?;
 
-        let mut columns = Vec::new(); 
+        let mut columns = Vec::new();
         loop {
-            let name = self.expect_indentifier("column name")?;
+            let name = self.expect_identifier("column name")?;
             let data_type = self.parse_data_type()?;
-            columns.push(ColumnDefinition {name, data_type}); 
-        
-            if !self.consume(&Token::Comma){
+            columns.push(ColumnDefinition { name, data_type });
+
+            if !self.consume(&Token::Comma) {
                 break;
             }
         }
 
         self.expect(&Token::RightParen, "')'")?;
-        Ok(Statement::CreateTable(CreateTableStatement { table, columns }))
+        Ok(Statement::CreateTable(CreateTableStatement {
+            table,
+            columns,
+        }))
     }
 
-    fn parse_data_type(&mut self) -> Result<DataType, ParseError>{
+    fn parse_data_type(&mut self) -> Result<DataType, ParseError> {
         let data_type = match self.current() {
-            Token::IntegerType => DataType::Integer, 
+            Token::IntegerType => DataType::Integer,
             Token::BooleanType => DataType::Boolean,
             Token::TextType => DataType::Text,
-            _ => return Err(self.error("INT, BOOL, or TEXT"))
+            _ => return Err(self.error("INT, BOOL, or TEXT")),
         };
         self.advance();
         Ok(data_type)
     }
 
-    fn parse_insert(&mut self) -> Result<Statement, ParseError>{
+    fn parse_insert(&mut self) -> Result<Statement, ParseError> {
         self.expect(&Token::Insert, "INSERT")?;
-        self.expect(&Token::Into,"INTO")?;
-        let table = self.expect_indentifier("table name")?;
-        self.expect(&Token::Values, "VALUE")?;
+        self.expect(&Token::Into, "INTO")?;
+        let table = self.expect_identifier("table name")?;
+        self.expect(&Token::Values, "VALUES")?;
         self.expect(&Token::LeftParen, "'('")?;
-        
+
         let mut values = Vec::new();
 
-        if !self.check(&Token::RightParen){
+        if !self.check(&Token::RightParen) {
             loop {
                 values.push(self.parse_expression()?);
-                if !self.consume(&Token::Comma){
+                if !self.consume(&Token::Comma) {
                     break;
                 }
             }
@@ -209,11 +203,11 @@ impl Parser{
 
     fn parse_select(&mut self) -> Result<Statement, ParseError> {
         self.expect(&Token::Select, "SELECT")?;
-        let mut projections = Vec::new(); 
+        let mut projections = Vec::new();
 
         loop {
-            let item = if self.consume(&Token::Asterisk){
-                SelectItem:: Wildcard
+            let item = if self.consume(&Token::Asterisk) {
+                SelectItem::Wildcard
             } else {
                 SelectItem::Expression(self.parse_expression()?)
             };
@@ -225,50 +219,53 @@ impl Parser{
         }
 
         self.expect(&Token::From, "FROM")?;
-        let table = self.expect_indentifier("table name")?;
-        let filter = if self.consume(&Token::Where){
+        let table = self.expect_identifier("table name")?;
+        let filter = if self.consume(&Token::Where) {
             Some(self.parse_expression()?)
-        }
-        else {
+        } else {
             None
         };
 
-        Ok(Statement::Select(SelectStatement { projections, table, filter }))
-
+        Ok(Statement::Select(SelectStatement {
+            projections,
+            table,
+            filter,
+        }))
     }
 
-    fn parse_updatE(&mut self) -> Result<Statement, ParseError> {
+    fn parse_update(&mut self) -> Result<Statement, ParseError> {
         self.expect(&Token::Update, "UPDATE")?;
-        let table = self.expect_indentifier("table name")?;
+        let table = self.expect_identifier("table name")?;
         self.expect(&Token::Set, "SET")?;
-        let mut assignments = Vec::new(); 
+        let mut assignments = Vec::new();
 
         loop {
-            let column = self.expect_indentifier("column name")?;
+            let column = self.expect_identifier("column name")?;
             self.expect(&Token::Equal, "'='")?;
             let value = self.parse_expression()?;
-            assignments.push(Assignment{column, value});
+            assignments.push(Assignment { column, value });
 
-            if !self.consume(&Token::Comma){
+            if !self.consume(&Token::Comma) {
                 break;
             }
         }
 
-        let filter = if self.consume(&Token::Where){
+        let filter = if self.consume(&Token::Where) {
             Some(self.parse_expression()?)
-        }else{
+        } else {
             None
         };
 
-        Ok(Statement::Update(UpdateStatement { table, assignments, filter }))
-
-
-        
+        Ok(Statement::Update(UpdateStatement {
+            table,
+            assignments,
+            filter,
+        }))
     }
-        fn parse_delete(&mut self) -> Result<Statement, ParseError> {
+    fn parse_delete(&mut self) -> Result<Statement, ParseError> {
         self.expect(&Token::Delete, "DELETE")?;
         self.expect(&Token::From, "FROM")?;
-        let table = self.expect_indentifier("table name")?;
+        let table = self.expect_identifier("table name")?;
         let filter = if self.consume(&Token::Where) {
             Some(self.parse_expression()?)
         } else {
@@ -277,7 +274,6 @@ impl Parser{
 
         Ok(Statement::Delete(DeleteStatement { table, filter }))
     }
-
 
     pub fn parse_expression(&mut self) -> Result<Expression, ParseError> {
         self.parse_or()
@@ -418,8 +414,7 @@ impl Parser{
         if self.check(expected) {
             self.advance();
             true
-        }
-        else {
+        } else {
             false
         }
     }
@@ -441,40 +436,38 @@ impl Parser{
         token
     }
 
-    fn expect (&mut self, expected: &Token, description: &str) -> Result<(), ParseError> {
-        if self.consume(expected){
+    fn expect(&mut self, expected: &Token, description: &str) -> Result<(), ParseError> {
+        if self.consume(expected) {
             Ok(())
-        }
-        else {
+        } else {
             Err(self.error(description))
         }
     }
 
-    fn expect_indentifier(&mut self, description: &str) -> Result<String, ParseError> {
+    fn expect_identifier(&mut self, description: &str) -> Result<String, ParseError> {
         if let Token::Identifier(name) = self.current().clone() {
             self.advance();
             Ok(name)
-        }
-        else {
+        } else {
             Err(self.error(description))
         }
     }
 
-
     fn error(&self, expected: &str) -> ParseError {
         if self.current() == &Token::EndOfInput {
-            ParseError::UnexpectedEnd { expected: expected.to_string(), position: self.position }
-        }
-        else{
-            ParseError::UnexpectedToken { expected: expected.to_string(), found: self.current().clone(), position: self.position }
+            ParseError::UnexpectedEnd {
+                expected: expected.to_string(),
+                position: self.position,
+            }
+        } else {
+            ParseError::UnexpectedToken {
+                expected: expected.to_string(),
+                found: self.current().clone(),
+                position: self.position,
+            }
         }
     }
 }
-
-
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -619,6 +612,3 @@ mod tests {
         ));
     }
 }
-
-
-

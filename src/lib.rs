@@ -1,3 +1,5 @@
+#![allow(non_snake_case)] // Keep the existing LiDB crate name for downstream users.
+
 pub mod storage;
 pub mod sql;
 pub mod executor; 
@@ -16,6 +18,7 @@ pub use executor::{
     execute_sql, execute_sql_batch,
 };
 pub use storage::{
-    Column, DataType, Database, DbError, DiskManager, FileDiskManager, PAGE_SIZE, PageId, RecordId,
-    Row, Schema, Slot, Table, Value,
+    BufferPool, Column, DataType, Database, DbError, DiskManager, FileDiskManager, Frame,
+    PAGE_SIZE, PageId, RecordId, Row, Schema, Slot, Table, Value,
 };
+

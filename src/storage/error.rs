@@ -44,6 +44,7 @@ pub enum DbError {
         maximum: usize,
     },
     CatalogFull,
+    AllFramesPinned,
 }
 
 impl fmt::Display for DbError {
@@ -100,6 +101,9 @@ impl fmt::Display for DbError {
                 "record is {size} bytes, but a page can hold at most {maximum}"
             ),
             DbError::CatalogFull => write!(f, "the single-page system catalog is full"),
+            DbError::AllFramesPinned => {
+                write!(f, "buffer pool has no unpinned frame to evict")
+            }
         
         }
     }
