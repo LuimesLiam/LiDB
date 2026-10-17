@@ -20,5 +20,5 @@ pub use executor::{
 pub use storage::{
     BufferPool, Column, DataType, Database, DbError, DiskManager, FileDiskManager, Frame,
     PAGE_SIZE, PageId, RecordId, Row, Schema, Slot, Table, Value,
+    HeapTable
 };
-

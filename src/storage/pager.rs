@@ -6,7 +6,7 @@ use super::page::{PAGE_SIZE, PageId, PageKind, SlottedPage};
 use std::path::Path;
 
 const DB_MAGIC: &[u8; 8] = b"TINYREL\0";
-const FORMAT_VERSION: u16 = 1;
+const FORMAT_VERSION: u16 = 2;
 // Keep capacity in one place so create/open always build equivalent pools.
 const DEFAULT_BUFFER_POOL_FRAMES: usize = 64;
 

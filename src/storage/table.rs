@@ -1,5 +1,4 @@
-use crate::storage::page::PageId;
-
+use crate::storage::heap_table::HeapTable;
 use super::schema::Schema;
 
 
@@ -7,7 +6,7 @@ use super::schema::Schema;
 pub struct Table {
     name: String, 
     schema: Schema, 
-    first_page: Option<PageId>,
+    heap: Option<HeapTable>,
     row_count: u64,
 }
 
@@ -17,7 +16,7 @@ impl Table {
         Self {
             name: name.into(),
             schema: schema, 
-            first_page: None, 
+            heap: None,
             row_count: 0,
         }
     }
@@ -34,11 +33,11 @@ impl Table {
     pub fn row_count(&self) -> usize {
         self.row_count as usize
     }
-    pub (crate) fn first_page(&self) -> Option<PageId> {
-        self.first_page
+    pub (crate) fn heap(&self) -> Option<HeapTable> {
+        self.heap
     }
-    pub (crate) fn set_storage(&mut self, first_page: Option<PageId>, row_count: u64) {
-        self.first_page = first_page; 
+    pub (crate) fn set_storage(&mut self, heap: Option<HeapTable>, row_count: u64) {
+        self.heap = heap;
         self.row_count = row_count; 
     } 
 
