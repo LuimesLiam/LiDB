@@ -4,7 +4,7 @@ use super::error::DbError;
 pub const PAGE_SIZE: usize = 4096; 
 
 const PAGE_MAGIC: &[u8; 4] = b"TRPG"; 
-const HEADER_SIZE: usize = 24; 
+const HEADER_SIZE: usize = 32; 
 const SLOT_SIZE: usize = 4; 
 const NO_PAGE: u64 = u64::MAX; 
 
@@ -53,6 +53,7 @@ impl SlottedPage {
         page.set_free_start(HEADER_SIZE as u16);
         page.set_free_end(PAGE_SIZE as u16);
         page.set_next_page(None);
+        page.set_previous_page(None);
         page
     }
 
@@ -210,6 +211,16 @@ impl SlottedPage {
     pub(crate) fn set_next_page(&mut self, page_id: Option<PageId>) {
         let value = page_id.map_or(NO_PAGE, |id| id.0);
         self.bytes[12..20].copy_from_slice(&value.to_le_bytes());
+    }
+
+    pub(crate) fn previous_page(&self) -> Option<PageId> {
+
+        let value: u64 = u64::from_le_bytes(self.bytes[20..28].try_into().unwrap());
+        (value != NO_PAGE).then_some(PageId(value))
+    }
+    pub(crate) fn set_previous_page(&mut self, page_id: Option<PageId>) {
+        let value: u64 = page_id.map_or(NO_PAGE, |id| id.0);
+        self.bytes[20..28].copy_from_slice(&value.to_le_bytes());
     }
     fn contiguous_free(&self) -> usize {
         // The free area is the gap between the slot directory and the records.

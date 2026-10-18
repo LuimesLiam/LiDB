@@ -1,9 +1,12 @@
+use crate::storage::row;
+
 use super::error::DbError;
 use super::page::PageId;
 use super::row::Row;
 use super::schema::{Column, Schema};
 use super::table::Table;
 use super::value::{DataType, Value};
+use super::heap_table::HeapTable; 
 
 const NO_PAGE: u64 = u64::MAX;
 
@@ -77,7 +80,10 @@ pub(crate) fn encode_table(table: &Table) -> Result<Vec<u8>, DbError> {
         });
         out.push(u8::from(column.is_nullable()));
     }
-    out.extend_from_slice(&table.first_page().map_or(NO_PAGE, |id| id.0).to_le_bytes());
+    let heap = table.heap();
+    //out.extend_from_slice(&table.first_page().map_or(NO_PAGE, |id| id.0).to_le_bytes());
+    out.extend_from_slice(&heap.map_or(NO_PAGE, |h| h.first_page_id.0).to_le_bytes());
+    out .extend_from_slice(&heap.map_or(NO_PAGE, |h| h.last_page_id.0).to_le_bytes());
     out.extend_from_slice(&(table.row_count() as u64).to_le_bytes());
     Ok(out)
 }
@@ -101,12 +107,23 @@ pub(crate) fn decode_table(bytes: &[u8]) -> Result<Table, DbError> {
         };
         columns.push(Column::new(column_name, data_type, nullable));
     }
-    let first = input.u64()?;
-    let row_count = input.u64()?;
-    input.finish()?;
     let schema = Schema::new(columns)?;
     let mut table = Table::new(name, schema);
-    table.set_storage((first != NO_PAGE).then_some(PageId(first)), row_count);
+    let first = input.u64()?; 
+    let last = input.u64()?;
+    let row_count = input.u64()?;
+    input.finish()?;
+
+    let heap = match ( first == NO_PAGE, last == NO_PAGE) {
+        (true, true) if row_count == 0 => None,
+        (false,false) if first >= 2 && last >= 2 => Some(HeapTable {
+            first_page_id: PageId(first),
+            last_page_id: PageId(last),
+        }), 
+        _ => return Err(DbError::Corrupt("invalid heap table page IDs".into())),
+    };
+    table.set_storage(heap, row_count);
+    
     Ok(table)
 }
 

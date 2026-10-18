@@ -9,7 +9,7 @@ mod pager;
 mod codec;
 mod disk_manager;
 mod buffer_pool;
-
+mod heap_table;
 // Re-export the useful types so callers do not need to know which small file
 // defines each one. `pub use` makes these names part of the module's public API.
 pub use database::Database;
@@ -21,4 +21,5 @@ pub use table::Table;
 pub use value::{DataType, Value};
 pub use page::{PAGE_SIZE, PageId, RecordId, Slot};
 pub use buffer_pool::{BufferPool, Frame};
+pub use heap_table::HeapTable;
 
